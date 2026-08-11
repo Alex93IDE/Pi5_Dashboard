@@ -62,10 +62,10 @@ To build and serve it from somewhere permanent:
 npm run build
 ```
 
-That leaves a static bundle in `dist/` — any web server will do, including the Pi itself. There's also an rsync shortcut if you deploy over SSH:
+That leaves a static bundle in `dist/` — any web server will do, including the Pi itself. There's also an rsync shortcut if you deploy over SSH: set `DEPLOY_TARGET` in your `.env` (`user@host:/path` of the directory nginx serves), then run:
 
 ```bash
-DEPLOY_TARGET=pi@192.168.1.10:~/pi5-dashboard/ npm run deploy
+npm run deploy
 ```
 
 ## Configuration

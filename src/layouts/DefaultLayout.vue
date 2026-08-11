@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useMqtt } from "../composables/mqtt";
 import { useMqttStore } from "../stores/mqtt";
 import { Network, ArrowUp, Clock, Shield, ShieldAlert, Wifi } from "lucide-vue-next";
+import AppFooter from "../components/AppFooter.vue";
 
 const { connect, disconnect } = useMqtt();
 const store = useMqttStore();
@@ -83,6 +84,7 @@ function toggle() {
     <main class="content">
       <RouterView />
     </main>
+    <AppFooter />
   </div>
 </template>
 
