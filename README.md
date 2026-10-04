@@ -18,7 +18,7 @@ Below it, a menu splits the rest into five tabs.
 
 The overview: CPU (load, frequency, temperature, fan), RAM, disk usage with NVMe health straight from SMART (temperature, spare capacity, wear, power-on hours, unsafe shutdowns, media errors), and an **Alerts** card.
 
-Alerts is the one to glance at. It collects everything that needs attention in one place, errors in red at the top, warnings in amber below, and a green check when there's nothing to report. Most entries are links to the tab where you can look closer.
+Alerts is the one to glance at. It collects everything that needs attention in one place, errors in red at the top, warnings in amber below, and a green check when there's nothing to report. Most entries are links to the tab where you can look closer. The browser tab follows along too — the title becomes `(3) Pi5 Dashboard` and the icon gets a red or amber dot — so you notice from another tab.
 
 | | error | warning |
 |---|---|---|
@@ -160,7 +160,9 @@ Worth reading before you host this anywhere.
 ```
 src/
   config.ts               reads .env — broker and topics
-  composables/mqtt.ts     connection, subscriptions, publishing
+  composables/
+    mqtt.ts               connection, subscriptions, publishing
+    alerts.ts             the rules behind the Alerts card and tab title
   stores/mqtt.ts          the payload shapes and where they live
   router/                 one route per tab
   layouts/                top bar and tab menu

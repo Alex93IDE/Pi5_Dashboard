@@ -30,12 +30,13 @@ const routes: RouteRecordRaw[] = [
         name: 'pironman',
         component: () => import('../views/PironmanView.vue'),
       },
+      // Inside the layout so a bad link still shows the header and menu.
+      {
+        path: ':pathMatch(.*)*',
+        name: 'not-found',
+        component: () => import('../views/NotFoundView.vue'),
+      },
     ],
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'not-found',
-    component: () => import('../views/NotFoundView.vue'),
   },
 ]
 

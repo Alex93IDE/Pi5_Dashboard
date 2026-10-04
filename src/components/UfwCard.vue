@@ -43,33 +43,35 @@ const sortedRules = computed(() =>
 
     <div class="card-body">
       <div v-if="!sortedRules" class="ufw-empty">—</div>
-      <table v-else class="ufw-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>To</th>
-            <th>Action</th>
-            <th>From</th>
-            <th>Name</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="rule in sortedRules" :key="rule.num">
-            <td class="col-num">{{ rule.num }}</td>
-            <td class="col-to">{{ rule.to }}</td>
-            <td class="col-action">
-              <span
-                class="action-badge"
-                :class="rule.action.includes('ALLOW') ? 'action-allow' : 'action-deny'"
-              >
-                {{ rule.action }}
-              </span>
-            </td>
-            <td class="col-from">{{ rule.source }}</td>
-            <td class="col-name">{{ rule.name || "—" }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-else class="table-wrap">
+        <table class="ufw-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>To</th>
+              <th>Action</th>
+              <th>From</th>
+              <th>Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="rule in sortedRules" :key="rule.num">
+              <td class="col-num">{{ rule.num }}</td>
+              <td class="col-to">{{ rule.to }}</td>
+              <td class="col-action">
+                <span
+                  class="action-badge"
+                  :class="rule.action.includes('ALLOW') ? 'action-allow' : 'action-deny'"
+                >
+                  {{ rule.action }}
+                </span>
+              </td>
+              <td class="col-from">{{ rule.source }}</td>
+              <td class="col-name">{{ rule.name || "—" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
@@ -112,8 +114,14 @@ const sortedRules = computed(() =>
   padding: 20px 0;
 }
 
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .ufw-table {
   width: 100%;
+  min-width: 560px;
   border-collapse: collapse;
   font-family: var(--font-mono);
   font-size: 11.5px;

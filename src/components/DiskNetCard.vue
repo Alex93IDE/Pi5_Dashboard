@@ -281,4 +281,21 @@ const hoursFormatted = computed(() => {
   font-family: var(--font-mono);
   line-height: 1;
 }
+
+@media (max-width: 540px) {
+  .bottom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .disk-metrics {
+    width: 100%;
+    flex-direction: row;
+  }
+
+  .v-divider {
+    display: none;
+  }
+}
 </style>

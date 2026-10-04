@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onUnmounted, watchEffect } from "vue";
 import { useMqtt } from "../composables/mqtt";
 import { useMqttStore } from "../stores/mqtt";
 import {
@@ -7,6 +7,7 @@ import {
   House, Server, BrickWall, Container, Fan,
 } from "lucide-vue-next";
 import AppFooter from "../components/AppFooter.vue";
+import { useAlerts } from "../composables/alerts";
 
 const { connect, disconnect } = useMqtt();
 const store = useMqttStore();
@@ -18,6 +19,28 @@ const navItems = [
   { to: { name: "docker" },   label: "Docker",   icon: Container },
   { to: { name: "pironman" }, label: "Pironman", icon: Fan },
 ];
+
+// Browser tab: "(3) Pi5 Dashboard" and a red/amber dot on the icon while
+// there are alerts, so it's visible from another tab.
+const { alerts, errorCount } = useAlerts();
+const baseTitle = document.title;
+const iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+const iconUrl = (name: string) => `${import.meta.env.BASE_URL}${name}`;
+
+watchEffect(() => {
+  const n = alerts.value.length;
+  document.title = n ? `(${n}) ${baseTitle}` : baseTitle;
+  if (iconLink) {
+    iconLink.href = iconUrl(
+      errorCount.value ? "favicon-error.svg" : n ? "favicon-warn.svg" : "favicon.svg"
+    );
+  }
+});
+
+onUnmounted(() => {
+  document.title = baseTitle;
+  if (iconLink) iconLink.href = iconUrl("favicon.svg");
+});
 
 const enabled = computed(() => store.status !== "disconnected")
 
@@ -303,9 +326,19 @@ function toggle() {
   border-bottom: 1px solid var(--border);
   padding: 0 1.5rem;
   display: flex;
-  justify-content: center;
   gap: 0.25rem;
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Auto margins centre the links but, unlike justify-content: center, still let
+   the first one scroll into view when they don't fit. */
+.nav-link:first-child {
+  margin-left: auto;
+}
+
+.nav-link:last-child {
+  margin-right: auto;
 }
 
 .nav-link {
@@ -334,5 +367,62 @@ function toggle() {
 .content {
   flex: 1;
   padding: 1.5rem;
+}
+
+/* Phone: title and connection on one row, the stats on a second row below. */
+@media (max-width: 760px) {
+  .header {
+    height: auto;
+    padding: 0.6rem 1rem;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "left right"
+      "center center";
+    row-gap: 0.6rem;
+  }
+
+  .header-left { grid-area: left; }
+  .header-right { grid-area: right; }
+
+  /* Five equal columns, no icons in the labels, so all stats fit on a phone. */
+  .header-center {
+    grid-area: center;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.25rem;
+  }
+
+  .stat-divider,
+  .stat-label svg {
+    display: none;
+  }
+
+  .stat-label {
+    font-size: 0.55rem;
+  }
+
+  .stat-value {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .nav {
+    padding: 0 0.5rem;
+  }
+}
+
+/* Narrow phones: drop the menu icons so all five tabs fit without scrolling. */
+@media (max-width: 420px) {
+  .nav-link {
+    padding: 0.6rem 0.55rem;
+  }
+
+  .nav-link svg {
+    display: none;
+  }
+
+  .content {
+    padding: 0;
+  }
 }
 </style>

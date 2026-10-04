@@ -311,4 +311,30 @@ function toggleFavorite(row: UnitRow) {
 @keyframes pulse {
   50% { opacity: 0.3; }
 }
+
+/* Phone: star, dot and name on the first line; tag and status wrap below,
+   lined up with the name (star 19px + dot 8px + two 10px gaps = 47px). */
+@media (max-width: 540px) {
+  .row {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .info {
+    flex-basis: calc(100% - 47px);
+  }
+
+  .tag {
+    margin-left: 47px;
+  }
+
+  .status {
+    max-width: none;
+    text-align: left;
+  }
+
+  .row > .status:nth-child(4) {
+    margin-left: 47px;
+  }
+}
 </style>
