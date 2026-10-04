@@ -17,6 +17,7 @@ export const brokerUrl = `${broker.protocol}://${broker.host}:${broker.port}`;
 export const topics = {
   fast: env.VITE_TOPIC_FAST || "pi5/fast",
   slow: env.VITE_TOPIC_SLOW || "pi5/slow",
+  status: env.VITE_TOPIC_STATUS || "pi5/status",
   control: env.VITE_TOPIC_CTRL || "pi5/control/pironman",
   services: env.VITE_TOPIC_SERVICES || "pi5/services",
   docker: env.VITE_TOPIC_DOCKER || "pi5/docker",

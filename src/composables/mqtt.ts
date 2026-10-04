@@ -9,6 +9,24 @@ const client = ref<MqttClient | null>(null);
 // confirmed by then the command was rejected and the star should settle back.
 const FAVORITE_TIMEOUT_MS = 35_000;
 
+// The status topic carries "online" / "offline". Accept it bare, as a JSON
+// string, or as {"status": "..."} so a small change on the daemon side doesn't
+// silently break it.
+function parseStatus(raw: string): boolean | null {
+  let value: unknown = raw.trim();
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    // bare word — keep it as is
+  }
+  if (value && typeof value === "object") {
+    value = (value as Record<string, unknown>).status ?? (value as Record<string, unknown>).state;
+  }
+  if (value === "online") return true;
+  if (value === "offline") return false;
+  return null;
+}
+
 export function useMqtt() {
   const store = useMqttStore();
 
@@ -22,13 +40,17 @@ export function useMqtt() {
 
     client.value.on("connect", () => {
       store.setStatus("connected");
-      client.value?.subscribe([topics.fast, topics.slow, topics.services, topics.docker]);
+      client.value?.subscribe([topics.status, topics.fast, topics.slow, topics.services, topics.docker]);
     });
 
     client.value.on("disconnect", () => store.setStatus("disconnected"));
     client.value.on("error", (err) => console.error("MQTT error:", err));
 
     client.value.on("message", (topic, message) => {
+      if (topic === topics.status) {
+        store.setPiOnline(parseStatus(message.toString()));
+        return;
+      }
       try {
         const data = JSON.parse(message.toString());
         if (topic === topics.fast) store.setFastData(data);

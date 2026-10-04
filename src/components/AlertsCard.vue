@@ -7,7 +7,7 @@ const { alerts, errorCount } = useAlerts();
 </script>
 
 <template>
-  <div class="card" :class="{ 'has-errors': errorCount > 0 }">
+  <div class="card alerts-card" :class="{ 'has-errors': errorCount > 0 }">
     <div class="card-header">
       <TriangleAlert :size="16" />
       <span>Alerts</span>
@@ -41,7 +41,7 @@ const { alerts, errorCount } = useAlerts();
 
 <style scoped>
 .card {
-  width: 500px;
+  width: 100%;
   border-color: rgba(245, 158, 11, 0.15);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 0 32px rgba(245, 158, 11, 0.04), 0 12px 40px rgba(0, 0, 0, 0.6);

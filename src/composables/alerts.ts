@@ -33,6 +33,10 @@ export function useAlerts() {
     // Connection
     if (store.status === "disconnected") {
       list.push({ level: "error", title: "Broker", detail: "not connected — data below may be stale" });
+    } else if (store.piOnline === false) {
+      // Everything else would be judged on the values retained from before
+      // the Pi went away, so it's the only alert worth showing.
+      return [{ level: "error", title: "Pi", detail: "offline — showing its last known values" }];
     } else if (store.status === "connected" && fast.timestamp) {
       const age = now.value - new Date(fast.timestamp).getTime();
       if (age > STALE_MS) {

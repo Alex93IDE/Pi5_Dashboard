@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { MemoryStick, Database } from "lucide-vue-next";
 import { useMqttStore } from "../stores/mqtt";
+import Sparkline from "./Sparkline.vue";
 
 const store = useMqttStore();
 
@@ -22,6 +23,25 @@ const pctColor = computed(() => {
   if (p >= 90) return "#ef4444";
   if (p >= 70) return "#f97316";
   return "#74c7ec";
+});
+
+// Scale the graph to the last minute rather than 0–100 %, like the network
+// one, so small changes are visible. Edges are rounded to one decimal with
+// half a point of margin, and the range is at least 2 points tall so a flat
+// line doesn't turn noise into cliffs.
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+const chartScale = computed(() => {
+  const h = store.ramHistory;
+  if (!h.length) return { min: 0, max: 100 };
+  let min = Math.min(...h) - 0.5;
+  let max = Math.max(...h) + 0.5;
+  if (max - min < 2) {
+    const mid = (max + min) / 2;
+    min = mid - 1;
+    max = mid + 1;
+  }
+  return { min: round1(Math.max(0, min)), max: round1(Math.min(100, max)) };
 });
 
 const CIRC = 2 * Math.PI * 52;
@@ -91,13 +111,20 @@ const pctDash = computed(() => {
           </div>
         </div>
       </div>
+
+      <Sparkline
+        :series="[{ values: store.ramHistory, color: pctColor, fill: true }]"
+        :min="chartScale.min"
+        :max="chartScale.max"
+        :top-label="`${chartScale.max.toFixed(1)} %`"
+        :bottom-label="`${chartScale.min.toFixed(1)} %`"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
 .card {
-  height: 280px;
   border-color: rgba(116, 199, 236, 0.15);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 0 32px rgba(116, 199, 236, 0.06), 0 12px 40px rgba(0, 0, 0, 0.6);

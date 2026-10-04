@@ -11,6 +11,8 @@ export type FastData = {
   cpu_pct: number | null;
   cpu_freq: number | null;
   cpu_temp: number | null;
+  cpu_cores: number[] | null; // % per core
+  load_avg: [number, number, number] | null; // 1, 5, 15 min
   fan_rpm: number | null;
   ram_used: number | null;
   ram_total: number | null;
@@ -19,6 +21,9 @@ export type FastData = {
   disk_total: number | null;
   disk_pct: number | null;
   ip: string | null;
+  net_iface: string | null;
+  net_rx: number | null; // bytes/s
+  net_tx: number | null; // bytes/s
   uptime: string | null;
   wg_active: number | null;
   wg_total: number | null;
@@ -72,12 +77,19 @@ export type FavoriteSource = "systemd" | "docker";
 export const favoriteKey = (source: FavoriteSource, name: string) =>
   `${source}:${name}`;
 
+export type NetSample = { rx: number; tx: number };
+
+// One sample per fast message (≈1 s), so these hold the last minute.
+const HISTORY = 60;
+
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
 const emptyFast: FastData = {
   cpu_pct: null,
   cpu_freq: null,
   cpu_temp: null,
+  cpu_cores: null,
+  load_avg: null,
   fan_rpm: null,
   ram_used: null,
   ram_total: null,
@@ -86,6 +98,9 @@ const emptyFast: FastData = {
   disk_total: null,
   disk_pct: null,
   ip: null,
+  net_iface: null,
+  net_rx: null,
+  net_tx: null,
   uptime: null,
   wg_active: null,
   wg_total: null,
@@ -115,6 +130,12 @@ const emptySlow: SlowData = {
 export const useMqttStore = defineStore("mqtt", {
   state: () => ({
     status: "disconnected" as ConnectionStatus,
+    // What the daemon says on the status topic (its last will is "offline").
+    // null until we've heard from it. Retained metrics can't be trusted while
+    // this is false — they're the last values before the Pi went away.
+    piOnline: null as boolean | null,
+    netHistory: [] as NetSample[],
+    ramHistory: [] as number[],
     fastData: { ...emptyFast },
     slowData: { ...emptySlow } as SlowData,
     // null until the first retained message arrives; [] means "none".
@@ -127,6 +148,12 @@ export const useMqttStore = defineStore("mqtt", {
   actions: {
     setFastData(data: Partial<FastData>) {
       this.fastData = { ...this.fastData, ...data };
+      if (typeof data.net_rx === "number" && typeof data.net_tx === "number") {
+        this.netHistory = [...this.netHistory, { rx: data.net_rx, tx: data.net_tx }].slice(-HISTORY);
+      }
+      if (typeof data.ram_pct === "number") {
+        this.ramHistory = [...this.ramHistory, data.ram_pct].slice(-HISTORY);
+      }
     },
     setSlowData(data: Partial<SlowData>) {
       this.slowData = { ...this.slowData, ...data };
@@ -151,8 +178,12 @@ export const useMqttStore = defineStore("mqtt", {
         if (this.pendingFavorites[key] === item.favorite) delete this.pendingFavorites[key];
       }
     },
+    setPiOnline(online: boolean | null) {
+      this.piOnline = online;
+    },
     setStatus(status: ConnectionStatus) {
       this.status = status;
+      if (status !== "connected") this.piOnline = null;
     },
   },
 });

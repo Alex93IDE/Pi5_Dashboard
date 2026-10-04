@@ -16,19 +16,32 @@ Below it, a menu splits the rest into five tabs.
 
 ### Home
 
-The overview: CPU (load, frequency, temperature, fan), RAM, disk usage with NVMe health straight from SMART (temperature, spare capacity, wear, power-on hours, unsafe shutdowns, media errors), and an **Alerts** card.
+The overview, as four cards and an **Alerts** card underneath:
+
+- **CPU** — overall load, a bar per core, load average over 1, 5 and 15 minutes, frequency, temperature and fan speed. The load average turns amber and red relative to the number of cores, since 4.0 on a four-core Pi means every core is busy.
+- **RAM** — used and total, plus a graph of the last minute.
+- **Disk / NVMe** — disk usage and the drive's health straight from SMART: temperature, spare capacity, wear, power-on hours, unsafe shutdowns and media errors.
+- **Network** — download and upload speed on the active interface, plus a graph of the last minute.
+
+Both graphs scale to what happened in that minute rather than to a fixed range, so small changes are visible: the labels on the left say what the top and bottom of the graph mean. They live in memory, so they start again when you reload the page.
+
+The cards sit four in a row on a wide screen, two by two on a laptop or tablet, and one under the other on a phone — never three and one. Alerts spans the same width as the cards above it.
 
 Alerts is the one to glance at. It collects everything that needs attention in one place, errors in red at the top, warnings in amber below, and a green check when there's nothing to report. Most entries are links to the tab where you can look closer. The browser tab follows along too — the title becomes `(3) Pi5 Dashboard` and the icon gets a red or amber dot — so you notice from another tab.
 
 | | error | warning |
 |---|---|---|
-| Connection | broker disconnected | no metrics from the publisher for 15 s |
+| Connection | broker disconnected, or the Pi reports itself offline | no metrics from the publisher for 15 s |
 | systemd | any unit `failed`, or a starred one that isn't `active` | — |
 | Docker | `dead`, `restarting`, or a starred one that isn't running | any other container that isn't running |
 | Firewall | UFW not `active` | — |
 | Hardware | NVMe media errors, NVMe spare ≤ 10 % | CPU ≥ 80 °C, RAM ≥ 90 %, disk ≥ 90 %, NVMe ≥ 70 °C, NVMe wear ≥ 90 % |
 
 An `inactive` systemd unit doesn't raise anything on its own. A typical Pi has a couple of hundred units and most of them are supposed to be inactive — oneshots that already ran, services for hardware you don't have. If you care whether one in particular is up, star it.
+
+### When the Pi goes away
+
+The publisher announces itself on a status topic and leaves `offline` behind as its last will, so the broker tells the dashboard the moment the Pi drops off — power cut, crash, network gone. When that happens a red bar says so, every card is greyed out, and Alerts shows only that: the numbers on screen are retained from before the Pi went away, and judging them would just produce stale alerts.
 
 ### Services and Docker
 
@@ -50,6 +63,12 @@ The star marks a favorite. Favorites are stored by the publisher, not in your br
 
 Case controls, relayed to the hardware by the daemon: OLED on and off, RGB on and off, colour, animation style, brightness, and the fan between always-on and auto.
 
+### On a phone or tablet
+
+The layout adapts down to phone width: the top bar splits into two rows, the firewall table scrolls sideways inside its card, and the lists put each unit's status on a second line.
+
+You can also swipe left and right on the page to move between tabs, in menu order. It only counts as a swipe if it's quick and clearly sideways, so scrolling down a long list won't change page, and it's ignored when it starts on something that moves sideways on its own — a slider, the colour picker, or the firewall table on a phone.
+
 ### Nothing is optimistic
 
 Every control — the Pironman switches and the favorite stars alike — sends its command and then waits for the publisher to report the new state before it moves. A star pulses while it waits. If a command doesn't land, the control stays where it was instead of lying to you.
@@ -64,7 +83,7 @@ Every control — the Pironman switches and the favorite stars alike — sends i
   protocol websockets
   ```
 
-- [Pi5_MQTT](https://github.com/Alex93IDE/Pi5_MQTT) running on the Pi, recent enough to publish `pi5/services` and `pi5/docker`. With an older publisher the Services and Docker tabs just sit on "Waiting for data…"; everything else still works.
+- [Pi5_MQTT](https://github.com/Alex93IDE/Pi5_MQTT) running on the Pi. An older publisher still works, you just lose the parts it doesn't send: without `pi5/services` and `pi5/docker` those tabs sit on "Waiting for data…", without `pi5/status` the dashboard can't tell when the Pi goes offline, and without the per-core and network fields the CPU bars and the Network card show dashes.
 
 ## Getting it running
 
@@ -116,6 +135,7 @@ Everything lives in `.env` and is read at build time, not runtime — rebuild af
 | `VITE_MQTT_PASS` | — | MQTT password |
 | `VITE_TOPIC_FAST` | `pi5/fast` | metrics, once a second |
 | `VITE_TOPIC_SLOW` | `pi5/slow` | NVMe, bans and firewall, every 30 s |
+| `VITE_TOPIC_STATUS` | `pi5/status` | `online` / `offline` (retained, last will) |
 | `VITE_TOPIC_SERVICES` | `pi5/services` | systemd units, every 30 s |
 | `VITE_TOPIC_DOCKER` | `pi5/docker` | Docker containers, every 30 s |
 | `VITE_TOPIC_CTRL` | `pi5/control/pironman` | case commands |
@@ -131,17 +151,26 @@ Give the dashboard its own broker user that can read the status topics, write th
 user <dashboard_user>
 topic read  pi5/fast
 topic read  pi5/slow
+topic read  pi5/status
 topic read  pi5/services
 topic read  pi5/docker
 topic write pi5/control/pironman
 topic write pi5/control/services
 ```
 
+The publisher's own user needs `topic write pi5/status` on top of what it already had.
+
 Restart Mosquitto after editing it. A topic missing from the list fails silently — the subscription is accepted and simply never delivers anything — so if a tab stays empty, this is the first place to look.
 
 ### Upgrading from an older version
 
-Service status used to ride along in `pi5/slow` as `svc_*` fields, renamed through `VITE_SERVICE_LABELS`. Both are gone: services now come complete on their own topic, with systemd's description as the label. Update the publisher, add the new topics to `.env` and the broker ACL, and delete `VITE_SERVICE_LABELS` if you had it.
+Service status used to ride along in `pi5/slow` as `svc_*` fields, renamed through `VITE_SERVICE_LABELS`. Both are gone: services now come complete on their own topic, with systemd's description as the label.
+
+To upgrade, update the publisher first, then:
+
+1. add `VITE_TOPIC_STATUS`, `VITE_TOPIC_SERVICES`, `VITE_TOPIC_DOCKER` and `VITE_TOPIC_CTRL_SERVICES` to `.env` if you use non-default topics, and delete `VITE_SERVICE_LABELS`;
+2. add the new topics to the broker ACL, as above;
+3. rebuild and deploy.
 
 ## Security notes
 
@@ -165,15 +194,17 @@ src/
     alerts.ts             the rules behind the Alerts card and tab title
   stores/mqtt.ts          the payload shapes and where they live
   router/                 one route per tab
-  layouts/                top bar and tab menu
+  layouts/                top bar, tab menu, swipe between tabs
   views/                  Home, Services, UFW, Docker, Pironman
   utils/
     units.ts              systemd/Docker state → colour, rows for the lists
     number.ts             turns smartctl's "3,234" or "100%" into numbers
   components/
-    CpuCard.vue           load, frequency, temperature, fan
-    RamCard.vue           memory
+    CpuCard.vue           load, per-core bars, load average, frequency, temperature, fan
+    RamCard.vue           memory and a one-minute graph
     DiskNetCard.vue       disk usage and NVMe health
+    NetworkCard.vue       throughput and a one-minute graph
+    Sparkline.vue         the small last-minute graph used by RAM and Network
     AlertsCard.vue        everything that needs attention
     UnitList.vue          searchable list with stars, used by Services and Docker
     UfwCard.vue           firewall rules

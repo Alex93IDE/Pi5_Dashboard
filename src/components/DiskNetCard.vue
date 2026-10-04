@@ -125,7 +125,7 @@ const hoursFormatted = computed(() => {
         </div>
       </div>
 
-      <!-- Fila inferior: disk used/total | separador | nvme grid -->
+      <!-- Fila inferior: disk used/total, separador, nvme grid -->
       <div class="bottom-row">
         <div class="disk-metrics">
           <div class="metric">
@@ -148,7 +148,7 @@ const hoursFormatted = computed(() => {
           </div>
         </div>
 
-        <div class="v-divider" />
+        <div class="h-divider" />
 
         <div class="nvme-grid">
           <div class="nvme-item">
@@ -211,37 +211,31 @@ const hoursFormatted = computed(() => {
 
 <style scoped>
 .card {
-  width: 500px;
   border-color: rgba(245, 158, 11, 0.15);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 0 32px rgba(245, 158, 11, 0.06), 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
+/* Card is 350px like CPU and RAM: disk used/total on one row, NVMe grid below. */
 .bottom-row {
   display: flex;
-  align-items: center;
-  gap: 0;
+  flex-direction: column;
+  gap: 12px;
   width: 100%;
 }
 
 .disk-metrics {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex-shrink: 0;
-  width: 140px;
+  gap: 7px;
 }
 
 .disk-metrics .metric {
   width: 100%;
 }
 
-.v-divider {
-  width: 1px;
-  align-self: stretch;
+.h-divider {
+  height: 1px;
   background: rgba(255, 255, 255, 0.06);
-  margin: 0 14px;
-  flex-shrink: 0;
 }
 
 .nvme-grid {
@@ -280,22 +274,5 @@ const hoursFormatted = computed(() => {
   font-weight: 600;
   font-family: var(--font-mono);
   line-height: 1;
-}
-
-@media (max-width: 540px) {
-  .bottom-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-
-  .disk-metrics {
-    width: 100%;
-    flex-direction: row;
-  }
-
-  .v-divider {
-    display: none;
-  }
 }
 </style>

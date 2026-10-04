@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onUnmounted, watchEffect } from "vue";
+import { computed, onUnmounted, ref, watch, watchEffect } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useMqtt } from "../composables/mqtt";
 import { useMqttStore } from "../stores/mqtt";
 import {
-  Network, ArrowUp, Clock, Shield, ShieldAlert, Wifi,
+  Network, ArrowUp, Clock, Shield, ShieldAlert, Wifi, Unplug,
   House, Server, BrickWall, Container, Fan,
 } from "lucide-vue-next";
 import AppFooter from "../components/AppFooter.vue";
@@ -19,6 +20,49 @@ const navItems = [
   { to: { name: "docker" },   label: "Docker",   icon: Container },
   { to: { name: "pironman" }, label: "Pironman", icon: Fan },
 ];
+
+// Swipe between tabs on touch screens, in menu order.
+const route = useRoute();
+const router = useRouter();
+const tabIndex = computed(() => navItems.findIndex((i) => i.to.name === route.name));
+
+// Pages slide in from the side they come from, whether by swipe or menu tap.
+const slide = ref("slide-left");
+watch(tabIndex, (to, from) => {
+  slide.value = to >= 0 && from >= 0 && to < from ? "slide-right" : "slide-left";
+});
+
+const SWIPE_MIN_PX = 70;
+const SWIPE_MAX_MS = 600;
+let touch: { x: number; y: number; t: number } | null = null;
+
+// Don't steal a swipe from things that move sideways on their own: inputs and
+// sliders, the menu, and anything that scrolls horizontally (the UFW table).
+function swipeBlocked(el: EventTarget | null): boolean {
+  for (let n = el as HTMLElement | null; n && n !== document.body; n = n.parentElement) {
+    if (n.matches("input, select, textarea, button, a, [data-no-swipe]")) return true;
+    if (n.scrollWidth > n.clientWidth + 1 && /auto|scroll/.test(getComputedStyle(n).overflowX)) return true;
+  }
+  return false;
+}
+
+function onTouchStart(e: TouchEvent) {
+  touch = e.touches.length === 1 && !swipeBlocked(e.target)
+    ? { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+    : null;
+}
+
+function onTouchEnd(e: TouchEvent) {
+  if (!touch || tabIndex.value < 0) return;
+  const dx = e.changedTouches[0].clientX - touch.x;
+  const dy = e.changedTouches[0].clientY - touch.y;
+  const quick = Date.now() - touch.t < SWIPE_MAX_MS;
+  touch = null;
+  // Mostly horizontal, long enough, and quick — otherwise it was a scroll.
+  if (!quick || Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dy) > Math.abs(dx) * 0.5) return;
+  const next = tabIndex.value + (dx < 0 ? 1 : -1);
+  if (next >= 0 && next < navItems.length) router.push(navItems[next].to);
+}
 
 // Browser tab: "(3) Pi5 Dashboard" and a red/amber dot on the icon while
 // there are alerts, so it's visible from another tab.
@@ -41,6 +85,8 @@ onUnmounted(() => {
   document.title = baseTitle;
   if (iconLink) iconLink.href = iconUrl("favicon.svg");
 });
+
+const piOffline = computed(() => store.piOnline === false);
 
 const enabled = computed(() => store.status !== "disconnected")
 
@@ -75,7 +121,7 @@ function toggle() {
       </div>
 
       <!-- Center: stats -->
-      <div class="header-center">
+      <div class="header-center" :class="{ stale: piOffline }">
         <div class="stat">
           <span class="stat-label"><ArrowUp :size="11" /> uptime</span>
           <span class="stat-value">{{ store.fastData.uptime ?? "—" }}</span>
@@ -127,8 +173,21 @@ function toggle() {
         {{ item.label }}
       </RouterLink>
     </nav>
-    <main class="content">
-      <RouterView />
+    <div v-if="piOffline" class="offline-banner">
+      <Unplug :size="14" />
+      <span>Pi disconnected — the numbers below are the last ones it sent and may be out of date.</span>
+    </div>
+    <main
+      class="content"
+      :class="{ 'pi-offline': piOffline }"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
+    >
+      <RouterView v-slot="{ Component }">
+        <Transition :name="slide" mode="out-in">
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </RouterView>
     </main>
     <AppFooter />
   </div>
@@ -320,6 +379,56 @@ function toggle() {
   background-color: var(--primary);
 }
 
+/* Pi offline: say so, and grey out every figure that came from it. */
+.offline-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.stale,
+.pi-offline :deep(.card:not(.alerts-card)) {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+/* Page change: a short slide from the side the new tab is on. */
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.slide-left-enter-from,
+.slide-right-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+.slide-left-leave-to,
+.slide-right-enter-from {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-left-enter-active,
+  .slide-left-leave-active,
+  .slide-right-enter-active,
+  .slide-right-leave-active {
+    transition: none;
+  }
+}
+
 /* Nav */
 .nav {
   background-color: var(--bg-surface);
@@ -367,6 +476,14 @@ function toggle() {
 .content {
   flex: 1;
   padding: 1.5rem;
+  overflow-x: hidden; /* keeps the slide animation from adding a scrollbar */
+}
+
+/* Tablet and below: the page already has its own padding, don't double it. */
+@media (max-width: 900px) {
+  .content {
+    padding: 0;
+  }
 }
 
 /* Phone: title and connection on one row, the stats on a second row below. */

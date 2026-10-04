@@ -30,6 +30,26 @@ const pctColor = computed(() => {
   return "#22c55e";
 });
 
+const cores = computed(() => store.fastData.cpu_cores ?? []);
+const loadAvg = computed(() => store.fastData.load_avg);
+
+function pctToColor(p: number): string {
+  if (p >= 90) return "#ef4444";
+  if (p >= 70) return "#f97316";
+  return "#22c55e";
+}
+
+// Load is only meaningful relative to the core count: 4.0 on a 4-core Pi
+// means every core busy.
+function loadColor(load: number): string {
+  const perCore = load / (cores.value.length || 4);
+  if (perCore >= 1) return "#ef4444";
+  if (perCore >= 0.7) return "#f97316";
+  return "#a6adc8";
+}
+
+const LOAD_LABELS = ["1m", "5m", "15m"];
+
 const CIRC = 2 * Math.PI * 52;
 const pctDash = computed(() => {
   const filled = ((cpuPct.value ?? 0) / 100) * CIRC;
@@ -106,15 +126,123 @@ const pctDash = computed(() => {
           </div>
         </div>
       </div>
+
+      <div class="extra">
+        <div v-if="cores.length" class="cores">
+          <div v-for="(pct, i) in cores" :key="i" class="core">
+            <div class="core-bar">
+              <div
+                class="core-fill"
+                :style="{ height: `${Math.min(pct, 100)}%`, background: pctToColor(pct) }"
+              />
+            </div>
+            <span class="core-label">C{{ i }}</span>
+          </div>
+        </div>
+        <div class="load">
+          <span class="load-title">Load</span>
+          <div v-for="(label, i) in LOAD_LABELS" :key="label" class="load-item">
+            <span
+              class="load-value"
+              :style="{ color: loadAvg ? loadColor(loadAvg[i]) : '#525875' }"
+            >
+              {{ loadAvg ? loadAvg[i].toFixed(2) : "—" }}
+            </span>
+            <span class="load-label">{{ label }}</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .card {
-  height: 280px;
   border-color: rgba(34, 197, 94, 0.15);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 0 32px rgba(34, 197, 94, 0.06), 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Per-core bars and load average */
+.extra {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  width: 100%;
+}
+
+.cores,
+.load {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.cores {
+  flex-shrink: 0;
+}
+
+.core {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.core-bar {
+  position: relative;
+  width: 8px;
+  height: 30px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.core-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 4px;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.5s ease;
+}
+
+.core-label,
+.load-label,
+.load-title {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(107, 112, 144, 0.7);
+}
+
+.load {
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.load-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.load-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.load-value {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  line-height: 1;
 }
 </style>

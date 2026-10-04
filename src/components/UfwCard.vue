@@ -79,6 +79,7 @@ const sortedRules = computed(() =>
 <style scoped>
 .card {
   width: 100%;
+  max-width: 1000px;
   border-color: rgba(4, 145, 115, 0.15);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.03) inset,
@@ -134,12 +135,12 @@ const sortedRules = computed(() =>
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding: 0 10px 10px 10px;
+  padding: 0 24px 12px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .ufw-table td {
-  padding: 7px 10px;
+  padding: 10px 24px 10px 0;
   color: var(--text);
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
@@ -152,22 +153,24 @@ const sortedRules = computed(() =>
   background: rgba(255, 255, 255, 0.02);
 }
 
+/* Columns size to their content; only # is pinned narrow. */
 .col-num {
   color: var(--text-muted) !important;
-  width: 30px;
-}
-
-.col-to {
-  width: 160px;
-}
-
-.col-action {
-  width: 120px;
+  width: 1%;
 }
 
 .col-from {
   color: rgba(205, 214, 244, 0.6) !important;
-  width: 170px;
+}
+
+.ufw-table td,
+.ufw-table th {
+  white-space: nowrap;
+}
+
+.ufw-table td:last-child,
+.ufw-table th:last-child {
+  padding-right: 0;
 }
 
 .col-name {
