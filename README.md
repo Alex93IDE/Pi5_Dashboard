@@ -69,6 +69,14 @@ The layout adapts down to phone width: the top bar splits into two rows, the fir
 
 You can also swipe left and right on the page to move between tabs, in menu order. It only counts as a swipe if it's quick and clearly sideways, so scrolling down a long list won't change page, and it's ignored when it starts on something that moves sideways on its own — a slider, the colour picker, or the firewall table on a phone.
 
+### Install it as an app
+
+It's a PWA: on a phone, tablet or desktop browser you can install it ("Add to home screen", or the install icon in the address bar) and it opens in its own window with its own icon, no browser bars. Only the app itself is stored on the device; the data still comes live from the broker.
+
+When you deploy a new version, an open copy notices within 15 minutes, or as soon as you switch back to it, and shows a **New version available** banner. Tap **Update** and it reloads onto the new one. It never switches by itself in the middle of what you're doing.
+
+Browsers only allow this over **HTTPS** (or on `localhost`). Served as plain `http://192.168.x.x`, the dashboard works exactly the same but can't be installed and won't cache itself. See the security notes for why HTTPS also means `wss` for the broker.
+
 ### Nothing is optimistic
 
 Every control — the Pironman switches and the favorite stars alike — sends its command and then waits for the publisher to report the new state before it moves. A star pulses while it waits. If a command doesn't land, the control stays where it was instead of lying to you.
@@ -119,6 +127,8 @@ location / {
     try_files $uri $uri/ /index.html;
 }
 ```
+
+After deploying, installed copies pick the new version up through the update banner described above.
 
 The footer shows when the bundle was built, as a single number like `202610041530` — handy for checking that the phone isn't showing you a cached copy of last week's deploy.
 
@@ -189,6 +199,7 @@ Worth reading before you host this anywhere.
 ```
 src/
   config.ts               reads .env — broker and topics
+  pwa.ts                  service worker registration and the update banner's logic
   composables/
     mqtt.ts               connection, subscriptions, publishing
     alerts.ts             the rules behind the Alerts card and tab title
@@ -209,9 +220,10 @@ src/
     UnitList.vue          searchable list with stars, used by Services and Docker
     UfwCard.vue           firewall rules
     PironmanControl.vue   case controls
+    UpdateBanner.vue      "New version available" prompt
 ```
 
-Vue 3 with `<script setup>`, TypeScript, Pinia, Vue Router, Vite, and [lucide](https://lucide.dev) for icons. Styling is plain CSS with custom properties in `src/style.css` — change the palette there and the whole thing follows.
+Vue 3 with `<script setup>`, TypeScript, Pinia, Vue Router, Vite, [vite-plugin-pwa](https://vite-pwa-org.netlify.app) for the installable app, and [lucide](https://lucide.dev) for icons. Styling is plain CSS with custom properties in `src/style.css` — change the palette there and the whole thing follows.
 
 The screenshots were taken with mock data, so the addresses, rules and services in them are made up.
 
