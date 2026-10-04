@@ -2,11 +2,22 @@
 import { computed } from "vue";
 import { useMqtt } from "../composables/mqtt";
 import { useMqttStore } from "../stores/mqtt";
-import { Network, ArrowUp, Clock, Shield, ShieldAlert, Wifi } from "lucide-vue-next";
+import {
+  Network, ArrowUp, Clock, Shield, ShieldAlert, Wifi,
+  House, Server, BrickWall, Container, Fan,
+} from "lucide-vue-next";
 import AppFooter from "../components/AppFooter.vue";
 
 const { connect, disconnect } = useMqtt();
 const store = useMqttStore();
+
+const navItems = [
+  { to: { name: "home" },     label: "Home",     icon: House },
+  { to: { name: "services" }, label: "Services", icon: Server },
+  { to: { name: "ufw" },      label: "UFW",      icon: BrickWall },
+  { to: { name: "docker" },   label: "Docker",   icon: Container },
+  { to: { name: "pironman" }, label: "Pironman", icon: Fan },
+];
 
 const enabled = computed(() => store.status !== "disconnected")
 
@@ -81,6 +92,18 @@ function toggle() {
         </label>
       </div>
     </header>
+    <nav class="nav">
+      <RouterLink
+        v-for="item in navItems"
+        :key="item.label"
+        :to="item.to"
+        class="nav-link"
+        exact-active-class="active"
+      >
+        <component :is="item.icon" :size="14" />
+        {{ item.label }}
+      </RouterLink>
+    </nav>
     <main class="content">
       <RouterView />
     </main>
@@ -272,6 +295,40 @@ function toggle() {
 .toggle-wrap input:checked + .slider::before {
   transform: translateX(20px);
   background-color: var(--primary);
+}
+
+/* Nav */
+.nav {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-link.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .content {

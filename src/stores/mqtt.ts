@@ -33,11 +33,6 @@ export type FastData = {
   fan_mode: number | null;
 };
 
-/**
- * The publisher emits one `svc_<alias>` boolean per unit it watches, and those
- * aliases are configured on its side — so they are typed as an open set here
- * instead of being pinned to any one machine's service list.
- */
 export type SlowData = {
   // The NVMe fields come straight out of smartctl, so they can be strings
   // like "100%" or "3,234" rather than plain numbers.
@@ -51,7 +46,31 @@ export type SlowData = {
   cs_bans: number | null;
   ufw_status: string | null;
   ufw_rules: UfwRule[] | null;
-} & { [service: `svc_${string}`]: boolean | null | undefined };
+};
+
+export type SystemdService = {
+  name: string;
+  active: string; // active | inactive | failed | activating | deactivating | reloading
+  sub: string; // running, exited, dead, failed, auto-restart…
+  // Unit file state: enabled | disabled | static | masked | indirect | enabled-runtime | generated …
+  // "" when the unit has no unit file. Informational only — never an error.
+  enabled: string;
+  description: string;
+  favorite: boolean;
+};
+
+export type DockerContainer = {
+  name: string;
+  image: string;
+  state: string; // running | exited | paused | restarting | created | dead
+  status: string; // Docker's own human-readable text, shown as-is
+  favorite: boolean;
+};
+
+export type FavoriteSource = "systemd" | "docker";
+
+export const favoriteKey = (source: FavoriteSource, name: string) =>
+  `${source}:${name}`;
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
@@ -98,6 +117,12 @@ export const useMqttStore = defineStore("mqtt", {
     status: "disconnected" as ConnectionStatus,
     fastData: { ...emptyFast },
     slowData: { ...emptySlow } as SlowData,
+    // null until the first retained message arrives; [] means "none".
+    services: null as SystemdService[] | null,
+    docker: null as DockerContainer[] | null,
+    // Favorite toggles sent but not yet confirmed, keyed by favoriteKey() and
+    // holding the requested value. The daemon confirms by republishing the list.
+    pendingFavorites: {} as Record<string, boolean>,
   }),
   actions: {
     setFastData(data: Partial<FastData>) {
@@ -105,6 +130,26 @@ export const useMqttStore = defineStore("mqtt", {
     },
     setSlowData(data: Partial<SlowData>) {
       this.slowData = { ...this.slowData, ...data };
+    },
+    setServices(list: SystemdService[]) {
+      this.services = list;
+      this.settleFavorites("systemd", list);
+    },
+    setDocker(list: DockerContainer[]) {
+      this.docker = list;
+      this.settleFavorites("docker", list);
+    },
+    markFavoritePending(source: FavoriteSource, name: string, value: boolean) {
+      this.pendingFavorites[favoriteKey(source, name)] = value;
+    },
+    clearFavoritePending(source: FavoriteSource, name: string) {
+      delete this.pendingFavorites[favoriteKey(source, name)];
+    },
+    settleFavorites(source: FavoriteSource, list: { name: string; favorite: boolean }[]) {
+      for (const item of list) {
+        const key = favoriteKey(source, item.name);
+        if (this.pendingFavorites[key] === item.favorite) delete this.pendingFavorites[key];
+      }
     },
     setStatus(status: ConnectionStatus) {
       this.status = status;

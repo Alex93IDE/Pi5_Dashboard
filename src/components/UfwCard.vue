@@ -76,7 +76,7 @@ const sortedRules = computed(() =>
 
 <style scoped>
 .card {
-  width: 760px;
+  width: 100%;
   border-color: rgba(4, 145, 115, 0.15);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.03) inset,

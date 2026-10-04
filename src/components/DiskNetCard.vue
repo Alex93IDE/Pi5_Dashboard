@@ -9,6 +9,7 @@ import {
   Database,
 } from "lucide-vue-next";
 import { useMqttStore } from "../stores/mqtt";
+import { toNumber } from "../utils/number";
 
 const store = useMqttStore();
 
@@ -43,16 +44,6 @@ const pctDash = computed(() => {
   const filled = ((diskPct.value ?? 0) / 100) * CIRC;
   return `${filled} ${CIRC}`;
 });
-
-// SMART values arrive as smartctl prints them — "100%", "3,234", sometimes "?"
-// when the drive didn't answer. Strip everything that isn't part of the number
-// before comparing or doing arithmetic on them.
-function toNumber(value: string | number | null): number | null {
-  if (value === null) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? value : null;
-  const cleaned = Number(value.replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(cleaned) ? cleaned : null;
-}
 
 const nvmeTempColor = computed(() => {
   const t = toNumber(nvmeTemp.value);

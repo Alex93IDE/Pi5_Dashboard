@@ -10,6 +10,26 @@ const routes: RouteRecordRaw[] = [
         name: 'home',
         component: () => import('../views/HomeView.vue'),
       },
+      {
+        path: 'services',
+        name: 'services',
+        component: () => import('../views/ServicesView.vue'),
+      },
+      {
+        path: 'ufw',
+        name: 'ufw',
+        component: () => import('../views/UfwView.vue'),
+      },
+      {
+        path: 'docker',
+        name: 'docker',
+        component: () => import('../views/DockerView.vue'),
+      },
+      {
+        path: 'pironman',
+        name: 'pironman',
+        component: () => import('../views/PironmanView.vue'),
+      },
     ],
   },
   {
