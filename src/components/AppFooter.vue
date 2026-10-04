@@ -1,5 +1,7 @@
 <script setup lang="ts">
-// Build timestamp, injected at build time by vite.config.ts.
+// Release version (package.json) and build timestamp, both injected at build
+// time by vite.config.ts.
+const version = __APP_VERSION__
 const buildDate = __BUILD_DATE__
 // Copyright year comes from the build date itself, so it updates on its own.
 const year = buildDate.slice(0, 4)
@@ -8,7 +10,7 @@ const year = buildDate.slice(0, 4)
 <template>
   <footer class="footer">
     <span class="copy">© {{ year }} TechShock D.S. LLC · All rights reserved</span>
-    <span class="build">{{ buildDate }}</span>
+    <span class="build">v{{ version }} · {{ buildDate }}</span>
   </footer>
 </template>
 
