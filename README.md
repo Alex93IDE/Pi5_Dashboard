@@ -111,7 +111,7 @@ Vue 3, TypeScript, Pinia, Vue Router, Vite, [vite-plugin-pwa](https://vite-pwa-o
 
 ## Project status
 
-A personal project, actively used on my own Pi. Versions follow [SemVer](https://semver.org); the footer shows the version and build number. Changes are in [CHANGELOG.md](CHANGELOG.md).
+A personal project, actively used on my own Pi. Versions follow [SemVer](https://semver.org); the footer shows the version and build number.
 
 Bug reports and ideas are welcome in [Issues](https://github.com/Alex93IDE/Pi5_Dashboard/issues). Pull requests too — for anything bigger than a fix, open an issue first.
 
