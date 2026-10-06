@@ -24,16 +24,22 @@ function formatRate(bytes: number | null): { value: string; unit: string } {
 const rx = computed(() => formatRate(store.fastData.net_rx));
 const tx = computed(() => formatRate(store.fastData.net_tx));
 
-// Both lines share one scale so they can be compared. The 1 KB/s floor keeps
-// an idle link from looking like a spike.
-const scaleMax = computed(() =>
-  Math.max(1024, ...store.netHistory.map((s) => Math.max(s.rx, s.tx)))
-);
-const peak = computed(() => formatRate(scaleMax.value));
-const series = computed<SparkSeries[]>(() => [
-  { values: store.netHistory.map((s) => s.rx), color: RX_COLOR, fill: true },
-  { values: store.netHistory.map((s) => s.tx), color: TX_COLOR },
-]);
+// Each direction gets its own chart and scale, so a quiet upload isn't
+// flattened by a busy download. The 1 KB/s floor keeps an idle link from
+// looking like a spike.
+function chart(key: "rx" | "tx", color: string) {
+  const values = store.netHistory.map((s) => s[key]);
+  const max = Math.max(1024, ...values);
+  const peak = formatRate(max);
+  return {
+    max,
+    label: `${peak.value} ${peak.unit}`,
+    series: [{ values, color, fill: true }] as SparkSeries[],
+  };
+}
+
+const rxChart = computed(() => chart("rx", RX_COLOR));
+const txChart = computed(() => chart("tx", TX_COLOR));
 </script>
 
 <template>
@@ -60,7 +66,10 @@ const series = computed<SparkSeries[]>(() => [
         </div>
       </div>
 
-      <Sparkline :series="series" :max="scaleMax" :top-label="`${peak.value} ${peak.unit}`" />
+      <div class="charts">
+        <Sparkline :series="rxChart.series" :max="rxChart.max" :top-label="`↓ ${rxChart.label}`" />
+        <Sparkline :series="txChart.series" :max="txChart.max" :top-label="`↑ ${txChart.label}`" />
+      </div>
     </div>
   </div>
 </template>
@@ -85,6 +94,13 @@ const series = computed<SparkSeries[]>(() => [
 
 .rates {
   display: flex;
+  gap: 7px;
+  width: 100%;
+}
+
+.charts {
+  display: flex;
+  flex-direction: column;
   gap: 7px;
   width: 100%;
 }
